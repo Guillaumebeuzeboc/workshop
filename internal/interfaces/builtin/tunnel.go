@@ -241,6 +241,15 @@ func (iface *tunnelInterface) AutoConnect(plug *sdk.PlugInfo, slot *sdk.SlotInfo
 	return false
 }
 
+// MaintainConnection implements [interfaces.Interface]. It keeps the
+// connection regardless of changes to the plug or slot definition.
+func (iface *tunnelInterface) MaintainConnection(
+	_ *sdk.PlugInfo, _ map[string]any,
+	_ *sdk.SlotInfo, _ map[string]any,
+) bool {
+	return true
+}
+
 func (iface *tunnelInterface) MountConnectedPlug(spec *lxd_device.Specification, plug *interfaces.ConnectedPlug, slot *interfaces.ConnectedSlot) error {
 	entry := workshop.ProxyEntry{Name: plug.Name()}
 

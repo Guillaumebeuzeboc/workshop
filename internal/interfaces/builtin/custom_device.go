@@ -143,6 +143,15 @@ func (iface *customDeviceInterface) AutoConnect(plug *sdk.PlugInfo, slot *sdk.Sl
 	return true
 }
 
+// MaintainConnection implements [interfaces.Interface]. It keeps the
+// connection regardless of changes to the plug or slot definition.
+func (iface *customDeviceInterface) MaintainConnection(
+	_ *sdk.PlugInfo, _ map[string]any,
+	_ *sdk.SlotInfo, _ map[string]any,
+) bool {
+	return true
+}
+
 func (iface *customDeviceInterface) MountConnectedPlug(spec *lxd_device.Specification, plug *interfaces.ConnectedPlug, slot *interfaces.ConnectedSlot) error {
 	device := workshop.CustomDevice{Name: plug.Name()}
 

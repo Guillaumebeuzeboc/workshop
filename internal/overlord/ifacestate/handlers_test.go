@@ -287,12 +287,24 @@ type simpleIface struct {
 func (si simpleIface) Name() string                                            { return si.name }
 func (si simpleIface) AutoConnect(plug *sdk.PlugInfo, slot *sdk.SlotInfo) bool { return true }
 
+// MaintainConnection implements [interfaces.Interface]. It keeps the
+// connection.
+func (si simpleIface) MaintainConnection(_ *sdk.PlugInfo, _ map[string]any, _ *sdk.SlotInfo, _ map[string]any) bool {
+	return true
+}
+
 type denyAutoIface struct {
 	name string
 }
 
 func (di denyAutoIface) Name() string                                            { return di.name }
 func (di denyAutoIface) AutoConnect(plug *sdk.PlugInfo, slot *sdk.SlotInfo) bool { return false }
+
+// MaintainConnection implements [interfaces.Interface]. It keeps the
+// connection.
+func (di denyAutoIface) MaintainConnection(_ *sdk.PlugInfo, _ map[string]any, _ *sdk.SlotInfo, _ map[string]any) bool {
+	return true
+}
 
 func (s *interfaceHandlersSuite) newAutoconnectChange(sk string) *state.Change {
 	chg := s.state.NewChange("sample", "...")
