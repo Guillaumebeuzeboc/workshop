@@ -31,8 +31,7 @@ Prerequisites
 
 Before starting, ensure you have these requirements satisfied:
 
-- An existing |sdk_markup| project
-  built with a version that supports :samp:`secret` plugs.
+- An existing |sdk_markup| project.
 
 - A command, tool, or systemd service in the SDK
   that needs a credential at runtime.
@@ -109,7 +108,7 @@ Secret slots belong to the :samp:`system` SDK
 and are added by the user in the workshop definition.
 
 Inside the workshop,
-the request identifier is :samp:`{SDK}.{PLUG}`;
+the request identifier is :samp:`<SDK>.<PLUG>`;
 for an SDK named :samp:`secret-demo`
 with the plug above,
 the identifier is :samp:`secret-demo.api-key`.
@@ -195,8 +194,8 @@ and how long it retains the returned value.
 The value does not need to enter the tool's environment.
 
 For example,
-the `Claude Code SDK <https://github.com/canonical/claude-code-sdk/>`_
-uses Claude Code's :samp:`apiKeyHelper`.
+Claude Code's :samp:`apiKeyHelper` setting runs a command
+and uses its output as the API key.
 
 If the tool accepts the credential on standard input instead,
 pipe the command output directly into the tool.
@@ -343,19 +342,15 @@ systemd still starts the unit with an empty credential.
 Let the service reject that state,
 and configure a restart policy or restart it after fixing the lookup.
 
-Connection timing depends on the workshop runtime:
+Expect an empty credential in two cases:
 
 - On initial launch,
   the service can start before the user connects the plug.
 
-- During an LXD container refresh,
+- During a refresh,
   an updated SDK's :samp:`setup-base` hook runs
   before |ws_markup| restores preserved connections.
   The first service start can therefore receive an empty credential.
-
-- A VM refresh does not restore interface connections.
-  The user must reconnect the plug
-  before a restarted service can receive the credential.
 
 
 To request the value immediately after connecting the plug

@@ -56,9 +56,8 @@ so pick one before you start:
 
    * - What persists
      - The value stays in your keyring;
-       an LXD container workshop preserves the connection across refreshes
-       until you disconnect it or remove an endpoint.
-       A VM workshop requires reconnection after a refresh
+       the workshop keeps the connection across refreshes
+       until you disconnect it or remove an endpoint
      - Nothing; the next command in the workshop doesn't see the value
 
    * - Who can read the value
@@ -209,11 +208,8 @@ Confirm the connection in the connections listing:
      secret     <WORKSHOP>/<SDK>:<PLUG>  <WORKSHOP>/system:openai-key  manual
 
 
-For an LXD container workshop,
-the connection persists across :command:`workshop refresh`,
+The connection persists across :command:`workshop refresh`,
 including when the refresh changes the slot's attributes.
-VM workshops don't restore interface connections during a refresh;
-reconnect the plug afterward.
 To withdraw access, disconnect the plug:
 
 .. code-block:: console
@@ -323,13 +319,13 @@ Otherwise, the error names the cause:
      - Cause
      - Fix
 
-   * - :samp:`cannot retrieve secret for plug "{SDK}.{PLUG}": unlock the secret provider and try again`
+   * - :samp:`cannot retrieve secret for plug "<SDK>.<PLUG>": unlock the secret provider and try again`
      - The keyring collection is locked;
        logged as :samp:`secret provider is locked`.
      - Unlock the keyring in your desktop session,
        then run the command again.
 
-   * - :samp:`no secret found for plug "{SDK}.{PLUG}"`
+   * - :samp:`no secret found for plug "<SDK>.<PLUG>"`
      - No item in the collection carries all the slot's attributes,
        or the slot names a collection that doesn't exist;
        logged as :samp:`secret not found`.
@@ -337,23 +333,24 @@ Otherwise, the error names the cause:
        using the same attributes,
        correct the slot's :samp:`attributes` or :samp:`collection`,
        then run :command:`workshop refresh`;
-       an LXD container keeps the connection,
-       but a VM workshop must be reconnected.
+       the connection stays in place.
 
-   * - :samp:`multiple secrets match plug "{SDK}.{PLUG}"; refine the secret slot`
+   * - :samp:`multiple secrets match plug "<SDK>.<PLUG>"; refine the secret slot`
      - Several items carry all the slot's attributes;
        logged as :samp:`multiple secrets match the request`.
-     - Add an attribute to the slot that only the intended item carries,
+     - List the matching items by running :command:`secret-tool search`
+       with :option:`!--all` and the slot's attributes,
+       discarding standard output.
+       Add an attribute to the slot that only the intended item carries,
        then run :command:`workshop refresh`,
        or remove the other items from the keyring.
-       Reconnect the plug after refreshing a VM workshop.
 
-   * - :samp:`secret plug "{SDK}.{PLUG}" is not connected`
+   * - :samp:`secret plug "<SDK>.<PLUG>" is not connected`
      - The plug isn't connected to the slot;
        logged as :samp:`plug is not connected`.
      - Connect it as described in :ref:`how_provide_secrets_connect`.
 
-   * - :samp:`cannot retrieve secret for plug "{SDK}.{PLUG}": internal error`
+   * - :samp:`cannot retrieve secret for plug "<SDK>.<PLUG>": internal error`
      - Another failure;
        the error leaves out the details.
      - Find the cause in the logged error,
@@ -371,7 +368,7 @@ of a single :command:`workshop exec` or :command:`workshop run` invocation
 with the :option:`!--env` flag.
 
 Don't type the value itself on the command line,
-as in :samp:`--env OPENAI_API_KEY={VALUE}`:
+as in :samp:`--env OPENAI_API_KEY=<VALUE>`:
 it stays in your shell history,
 and other processes on the host can read it from the process list
 while the command runs.
