@@ -65,7 +65,86 @@ func (m *InterfaceManager) doResolveInterfaces(task *state.Task, tomb *tomb.Tomb
 	// Ensure that if the SDK is connected there will be no conflicting bind
 	// mount targets in the workshop, i.e. the situation when a two or more
 	// sources are bind mount at the same target in the workshop.
-	return m.checkConflictingMounts(wp)
+	if err = m.checkConflictingMounts(wp); err != nil {
+		return err
+	}
+
+	return m.maintainConnections(task, w)
+}
+
+// maintainConnections drops preserved connections that their interface
+// reports are invalidated by a definition change.
+func (m *InterfaceManager) maintainConnections(
+	task *state.Task, w string,
+) error {
+	st := task.State()
+	st.Lock()
+	defer st.Unlock()
+	chg := task.Change()
+
+	existingPreservedConns, err := handlersetup.WorkshopPreservedConns(chg, w)
+	if err != nil {
+		return fmt.Errorf("getting preserved connections for workshop: %w", err)
+	}
+
+	// If no preserved connections exist early exit.
+	if len(existingPreservedConns) == 0 {
+		return nil
+	}
+
+	connsToMaintain := make(
+		map[string]schema.PreservedConn, len(existingPreservedConns),
+	)
+	for id, preservedConn := range existingPreservedConns {
+		connsToMaintain[id] = preservedConn
+
+		if preservedConn.Auto {
+			continue
+		}
+
+		connRef, err := interfaces.ParseConnRef(id)
+		if err != nil {
+			continue
+		}
+
+		plugRef, slotRef := connRef.PlugRef, connRef.SlotRef
+		plug := m.repo.Plug(
+			plugRef.ProjectId, plugRef.Workshop, plugRef.Sdk, plugRef.Name)
+		slot := m.repo.Slot(
+			slotRef.ProjectId, slotRef.Workshop, slotRef.Sdk, slotRef.Name)
+		if plug == nil || slot == nil || plug.Interface != preservedConn.Interface || slot.Interface != preservedConn.Interface {
+			continue
+		}
+
+		if preservedConn.StaticPlugAttrs == nil || preservedConn.StaticSlotAttrs == nil {
+			continue
+		}
+
+		plugIface := m.repo.Interface(plug.Interface)
+		if plugIface == nil {
+			continue
+		}
+
+		maintainConnection := plugIface.MaintainConnection(
+			plug, preservedConn.StaticPlugAttrs,
+			slot, preservedConn.StaticSlotAttrs,
+		)
+		if maintainConnection {
+			continue
+		}
+
+		delete(connsToMaintain, id)
+		st.Warnf(
+			"disconnected %q from %q because its definition changed",
+			plugRef.ShortRef(), slotRef.ShortRef(),
+		)
+	}
+
+	if len(connsToMaintain) != len(existingPreservedConns) {
+		chg.Set(handlersetup.WorkshopPreservedConnsKey(w), connsToMaintain)
+	}
+
+	return nil
 }
 
 func (m *InterfaceManager) doAutoConnect(task *state.Task, tomb *tomb.Tomb) (err error) {
