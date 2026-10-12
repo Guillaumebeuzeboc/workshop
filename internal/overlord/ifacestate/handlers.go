@@ -69,13 +69,13 @@ func (m *InterfaceManager) doResolveInterfaces(task *state.Task, tomb *tomb.Tomb
 		return err
 	}
 
-	return m.maintainConnections(task, w)
+	return m.maintainConnections(task, wp, w)
 }
 
 // maintainConnections drops preserved connections that their interface
 // reports are invalidated by a definition change.
 func (m *InterfaceManager) maintainConnections(
-	task *state.Task, w string,
+	task *state.Task, wp *workshop.Workshop, w string,
 ) error {
 	st := task.State()
 	st.Lock()
@@ -108,6 +108,11 @@ func (m *InterfaceManager) maintainConnections(
 		}
 
 		plugRef, slotRef := connRef.PlugRef, connRef.SlotRef
+		if IsBoundSlave(wp, plugRef) {
+			// A bound plug follows its master's connection, which decides
+			// whether to keep it.
+			continue
+		}
 		plug := m.repo.Plug(
 			plugRef.ProjectId, plugRef.Workshop, plugRef.Sdk, plugRef.Name)
 		slot := m.repo.Slot(
