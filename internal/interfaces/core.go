@@ -164,6 +164,23 @@ type Interface interface {
 	// unambiguous connection candidate and declaration-based checks
 	// allow.
 	AutoConnect(plug *sdk.PlugInfo, slot *sdk.SlotInfo) bool
+
+	// MaintainConnection reports whether an existing connection between
+	// plug and slot should be kept when their definitions changed.
+	//
+	// plug and slot are the definitions currently being resolved.
+	// oldPlugAttrs and oldSlotAttrs are the static definition attribute
+	// snapshots recorded when the connection was made. The caller only
+	// invokes this for a connection that has a recorded snapshot.
+	//
+	// It is consulted before AutoConnect during a refresh. Returning false
+	// drops the existing connection, even if the pair would otherwise be
+	// auto-connected again. Interfaces with no notion of a material
+	// definition change return true.
+	MaintainConnection(
+		plug *sdk.PlugInfo, oldPlugAttrs map[string]any,
+		slot *sdk.SlotInfo, oldSlotAttrs map[string]any,
+	) bool
 }
 
 // ConnPlugSanitizer can be implemented by Interfaces that have reasons to sanitize
