@@ -242,12 +242,23 @@ func (iface *tunnelInterface) AutoConnect(plug *sdk.PlugInfo, slot *sdk.SlotInfo
 }
 
 // MaintainConnection implements [interfaces.Interface]. It keeps the
-// connection regardless of changes to the plug or slot definition.
+// connection while the tunnel's plug and slot endpoints are unchanged; a
+// change to either reworks the tunnel.
 func (iface *tunnelInterface) MaintainConnection(
-	_ *sdk.PlugInfo, _ map[string]any,
-	_ *sdk.SlotInfo, _ map[string]any,
+	plug *sdk.PlugInfo, oldPlugAttrs map[string]any,
+	slot *sdk.SlotInfo, oldSlotAttrs map[string]any,
 ) bool {
-	return true
+	return endpointsEqual(oldPlugAttrs, plug.Attrs) &&
+		endpointsEqual(oldSlotAttrs, slot.Attrs)
+}
+
+// endpointsEqual reports whether the two attribute maps carry the same
+// "endpoint". Tunnel endpoints are always strings: the sanitizers normalise
+// them, and the snapshot is recorded from the sanitised definition.
+func endpointsEqual(oldAttrs, newAttrs map[string]any) bool {
+	oldEndpoint, _ := oldAttrs["endpoint"].(string)
+	newEndpoint, _ := newAttrs["endpoint"].(string)
+	return oldEndpoint == newEndpoint
 }
 
 func (iface *tunnelInterface) MountConnectedPlug(spec *lxd_device.Specification, plug *interfaces.ConnectedPlug, slot *interfaces.ConnectedSlot) error {
