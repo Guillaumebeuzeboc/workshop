@@ -21,6 +21,30 @@ jobs:
     uses: $/.github/workflows/build-deps.yaml
     secrets:
       SDKCRAFT_STORE_CREDENTIALS: ${{ secrets.SDKCRAFT_STORE_CREDENTIALS }}
+  build-workshop-arm64:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork
+    runs-on:
+      - self-hosted
+      - Linux
+      - noble
+      - ARM64
+      - medium
+    outputs:
+      snap_workshop_arm64: ${{ steps.snapcraft_workshop_arm64.outputs.snap }}
+    steps:
+      - name: Checkout Workshop
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Build Workshop (arm64)
+        uses: canonical/action-build@3bdaa03e1ba6bf59a65f84a751d943d549a54e79 # v1.3.0
+        id: snapcraft_workshop_arm64
+      - name: Upload Workshop (arm64)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: snap_workshop_arm64
+          path: ${{ steps.snapcraft_workshop_arm64.outputs.snap }}
   snap-tests:
     name: snap tests / ${{ matrix.suite.label }}
     needs: [build-deps]
@@ -176,7 +200,7 @@ jobs:
           archive: false
           if-no-files-found: ignore
   publish:
-    needs: [build-deps, snap-tests]
+    needs: [build-deps, build-workshop-arm64, snap-tests]
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork)
     runs-on: ubuntu-latest
     steps:
@@ -207,12 +231,12 @@ jobs:
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.STORE_CREDENTIALS }} # zizmor: ignore[secrets-outside-env]
         with:
-          snap: ${{ needs.build-deps.outputs.snap_workshop_arm64 }}
+          snap: ${{ needs.build-workshop-arm64.outputs.snap_workshop_arm64 }}
           release: edge
       - uses: canonical/action-publish@214b86e5ca036ead1668c79afb81e550e6c54d40 # v1.2.0
         if: github.event_name == 'pull_request'
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.STORE_CREDENTIALS }} # zizmor: ignore[secrets-outside-env]
         with:
-          snap: ${{ needs.build-deps.outputs.snap_workshop_arm64 }}
+          snap: ${{ needs.build-workshop-arm64.outputs.snap_workshop_arm64 }}
           release: edge/${{ github.event.pull_request.number }}
