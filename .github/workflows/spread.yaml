@@ -183,8 +183,10 @@ jobs:
           read -r -a suite_paths <<< "$SUITE_PATHS"
           spread -artifacts="$ARTIFACTS" "${suite_paths[@]}"
 
-          # Workaround https://github.com/actions/upload-artifact/issues/546
-          cd "$ARTIFACTS/lxd:ubuntu-24.04:tests" || exit 0
+          # Workaround https://github.com/actions/upload-artifact/issues/546.
+          # The directory only exists if the test produced some coverage artifacts,
+          # i.e., it's an integration test.
+          cd "$ARTIFACTS/lxd:ubuntu-24.04:tests" 2>/dev/null || exit 0
           shopt -s dotglob nullglob
           entries=(*)
           [ "${#entries[@]}" -gt 0 ] || exit 0
