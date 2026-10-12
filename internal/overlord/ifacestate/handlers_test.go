@@ -1666,6 +1666,7 @@ func (s *interfaceHandlersSuite) TestAutoDisconnectPreservesRemounts(c *check.C)
 		"42424242/ws/consumer:plug 42424242/ws/system:mount": map[string]any{
 			"auto":         true,
 			"interface":    "mount",
+			"plug-static":  map[string]any{"workshop-target": "/opt"},
 			"slot-dynamic": map[string]any{"host-source": source},
 		},
 	})
@@ -1774,21 +1775,25 @@ func (s *interfaceHandlersSuite) TestAutoDisconnectPreservesBinding(c *check.C) 
 	c.Assert(chg.Get("ws_conns", &preserved), check.IsNil)
 	c.Assert(preserved, check.DeepEquals, map[string]any{
 		"42424242/ws/consumer:plug 42424242/ws/producer:slot": map[string]any{
-			"interface": "mock-network",
-			"auto":      true,
+			"interface":   "mock-network",
+			"auto":        true,
+			"plug-static": map[string]any{"attribute": "one"},
 		},
 		"42424242/ws/consumer:plug2 42424242/ws/producer:slot": map[string]any{
-			"interface": "mock-network",
-			"auto":      true,
+			"interface":   "mock-network",
+			"auto":        true,
+			"plug-static": map[string]any{"attribute": "two"},
 		},
 		"42424242/ws/consumer:plug3 42424242/ws/producer:slot": map[string]any{
-			"interface": "mock-network",
-			"auto":      true,
+			"interface":   "mock-network",
+			"auto":        true,
+			"plug-static": map[string]any{"attribute": "three"},
 		},
 		"42424242/ws/consumer:bound 42424242/ws/producer:slot": map[string]any{
 			"interface":    "mock-network",
 			"auto":         true,
 			"plug-dynamic": map[string]any{"bind": "42424242/ws/consumer:plug 42424242/ws/producer:slot"},
+			"plug-static":  map[string]any{"attribute": "one"},
 		},
 	})
 	c.Assert(s.secBackend.SetupCalls, check.HasLen, 10)

@@ -150,7 +150,9 @@ func (m *InterfaceManager) preserveConns(st *state.State, chg *state.Change, pro
 		preserved[cref.ID()] = schema.PreservedConn{
 			Auto:             state.Auto,
 			Interface:        state.Interface,
+			StaticPlugAttrs:  state.StaticPlugAttrs,
 			DynamicPlugAttrs: state.DynamicPlugAttrs,
+			StaticSlotAttrs:  state.StaticSlotAttrs,
 			DynamicSlotAttrs: state.DynamicSlotAttrs,
 		}
 		changed = true
