@@ -72,6 +72,7 @@ jobs:
               tests/main/interface-plug-binding
               tests/main/interface-ssh-agent
               tests/main/interface-tunnel
+              tests/main/interface-tunnel-disconnect
               tests/main/shell
               tests/main/ssh
               tests/main/workshop-connections
