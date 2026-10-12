@@ -144,11 +144,25 @@ func (iface *customDeviceInterface) AutoConnect(plug *sdk.PlugInfo, slot *sdk.Sl
 }
 
 // MaintainConnection implements [interfaces.Interface]. It keeps the
-// connection regardless of changes to the plug or slot definition.
+// connection while the plug's device filter is unchanged. A custom-device
+// slot carries no attributes.
 func (iface *customDeviceInterface) MaintainConnection(
-	_ *sdk.PlugInfo, _ map[string]any,
+	plug *sdk.PlugInfo, oldPlugAttrs map[string]any,
 	_ *sdk.SlotInfo, _ map[string]any,
 ) bool {
+	return deviceFiltersEqual(oldPlugAttrs, plug.Attrs)
+}
+
+// deviceFiltersEqual reports whether the two attribute maps carry the same
+// device filter. The sanitizers normalise the values to strings.
+func deviceFiltersEqual(oldAttrs, newAttrs map[string]any) bool {
+	for _, key := range knownCustomDeviceAttributes {
+		oldValue, _ := oldAttrs[key].(string)
+		newValue, _ := newAttrs[key].(string)
+		if oldValue != newValue {
+			return false
+		}
+	}
 	return true
 }
 
