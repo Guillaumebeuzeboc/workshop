@@ -565,6 +565,17 @@ func MaybeBound(w *workshop.Workshop, ref sdk.PlugRef) (sdk.PlugRef, []sdk.PlugR
 	return ref, nil
 }
 
+// IsBoundSlave reports whether ref is a plug bound to another plug. A bound
+// plug follows its master's connection rather than owning one.
+func IsBoundSlave(w *workshop.Workshop, ref sdk.PlugRef) bool {
+	for _, s := range w.File.Sdks {
+		if s.Name == ref.Sdk {
+			return s.Plugs[ref.Name].Bind != nil
+		}
+	}
+	return false
+}
+
 func (m *InterfaceManager) doConnect(task *state.Task, tomb *tomb.Tomb) error {
 	st := task.State()
 	st.Lock()
