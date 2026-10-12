@@ -121,7 +121,10 @@ func (m *InterfaceManager) maintainConnections(
 			continue
 		}
 
-		if preservedConn.StaticPlugAttrs == nil || preservedConn.StaticSlotAttrs == nil {
+		// A recorded baseline always sets both fields, but empty maps are
+		// dropped by the omitempty JSON tag, so only a completely absent
+		// snapshot means no baseline was recorded.
+		if preservedConn.StaticPlugAttrs == nil && preservedConn.StaticSlotAttrs == nil {
 			continue
 		}
 
