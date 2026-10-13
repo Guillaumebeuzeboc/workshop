@@ -31,3 +31,7 @@ execute: |
       tr -d '\n' |
       sed -e 's,\s\+, ,g' |
       MATCH 'disconnected "ws-custom-device-disconnect/test-sdk-basic-2:device" from "ws-custom-device-disconnect/system:custom-device" because its definition changed'
+
+  # Warnings are global state that persists across tests sharing a machine, so
+  # acknowledge this one to keep later tests' warning counts deterministic.
+  workshop_exec okay
