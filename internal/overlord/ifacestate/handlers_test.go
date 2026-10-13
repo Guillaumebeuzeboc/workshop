@@ -2965,32 +2965,6 @@ func (s *interfaceHandlersSuite) TestDoDisconnectSetupFailure(c *check.C) {
 	c.Assert(err, check.IsNil)
 }
 
-// TestIsBoundSlave checks that a plug declared with a bind is reported as a
-// bound slave, and that unbound or unknown plugs are not.
-func (s *interfaceHandlersSuite) TestIsBoundSlave(c *check.C) {
-	wp := &workshop.Workshop{
-		Name:    "ws",
-		Project: workshop.Project{ProjectId: "42"},
-		File: &workshop.File{
-			Sdks: []workshop.SdkRecord{{
-				Name: "consumer",
-				Plugs: map[string]workshop.PlugOrBind{
-					"bound": {Bind: &workshop.PlugRef{Sdk: "producer", Name: "master"}},
-					"plain": {},
-				},
-			}},
-		},
-	}
-	ref := func(sdkName, name string) sdk.PlugRef {
-		return sdk.PlugRef{ProjectId: "42", Workshop: "ws", Sdk: sdkName, Name: name}
-	}
-
-	c.Check(ifacestate.IsBoundSlave(wp, ref("consumer", "bound")), check.Equals, true)
-	c.Check(ifacestate.IsBoundSlave(wp, ref("consumer", "plain")), check.Equals, false)
-	c.Check(ifacestate.IsBoundSlave(wp, ref("consumer", "missing")), check.Equals, false)
-	c.Check(ifacestate.IsBoundSlave(wp, ref("other", "bound")), check.Equals, false)
-}
-
 func (s *interfaceHandlersSuite) TestDoDisconnectSetupFailureAuto(c *check.C) {
 	// Launch
 	repo := s.mgr.Repository()

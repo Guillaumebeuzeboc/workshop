@@ -65,94 +65,7 @@ func (m *InterfaceManager) doResolveInterfaces(task *state.Task, tomb *tomb.Tomb
 	// Ensure that if the SDK is connected there will be no conflicting bind
 	// mount targets in the workshop, i.e. the situation when a two or more
 	// sources are bind mount at the same target in the workshop.
-	if err = m.checkConflictingMounts(wp); err != nil {
-		return err
-	}
-
-	return m.maintainConnections(task, wp, w)
-}
-
-// maintainConnections drops preserved connections that their interface
-// reports are invalidated by a definition change.
-func (m *InterfaceManager) maintainConnections(
-	task *state.Task, wp *workshop.Workshop, w string,
-) error {
-	st := task.State()
-	st.Lock()
-	defer st.Unlock()
-	chg := task.Change()
-
-	existingPreservedConns, err := handlersetup.WorkshopPreservedConns(chg, w)
-	if err != nil {
-		return fmt.Errorf("getting preserved connections for workshop: %w", err)
-	}
-
-	// If no preserved connections exist early exit.
-	if len(existingPreservedConns) == 0 {
-		return nil
-	}
-
-	connsToMaintain := make(
-		map[string]schema.PreservedConn, len(existingPreservedConns),
-	)
-	for id, preservedConn := range existingPreservedConns {
-		connsToMaintain[id] = preservedConn
-
-		if preservedConn.Auto {
-			continue
-		}
-
-		connRef, err := interfaces.ParseConnRef(id)
-		if err != nil {
-			continue
-		}
-
-		plugRef, slotRef := connRef.PlugRef, connRef.SlotRef
-		if IsBoundSlave(wp, plugRef) {
-			// A bound plug follows its master's connection, which decides
-			// whether to keep it.
-			continue
-		}
-		plug := m.repo.Plug(
-			plugRef.ProjectId, plugRef.Workshop, plugRef.Sdk, plugRef.Name)
-		slot := m.repo.Slot(
-			slotRef.ProjectId, slotRef.Workshop, slotRef.Sdk, slotRef.Name)
-		if plug == nil || slot == nil || plug.Interface != preservedConn.Interface || slot.Interface != preservedConn.Interface {
-			continue
-		}
-
-		// A recorded baseline always sets both fields, but empty maps are
-		// dropped by the omitempty JSON tag, so only a completely absent
-		// snapshot means no baseline was recorded.
-		if preservedConn.StaticPlugAttrs == nil && preservedConn.StaticSlotAttrs == nil {
-			continue
-		}
-
-		plugIface := m.repo.Interface(plug.Interface)
-		if plugIface == nil {
-			continue
-		}
-
-		maintainConnection := plugIface.MaintainConnection(
-			plug, preservedConn.StaticPlugAttrs,
-			slot, preservedConn.StaticSlotAttrs,
-		)
-		if maintainConnection {
-			continue
-		}
-
-		delete(connsToMaintain, id)
-		st.Warnf(
-			"disconnected %q from %q because its definition changed",
-			plugRef.ShortRef(), slotRef.ShortRef(),
-		)
-	}
-
-	if len(connsToMaintain) != len(existingPreservedConns) {
-		chg.Set(handlersetup.WorkshopPreservedConnsKey(w), connsToMaintain)
-	}
-
-	return nil
+	return m.checkConflictingMounts(wp)
 }
 
 func (m *InterfaceManager) doAutoConnect(task *state.Task, tomb *tomb.Tomb) (err error) {
@@ -431,6 +344,22 @@ func (m *InterfaceManager) connectAuto(task *state.Task, wp *workshop.Workshop, 
 			continue
 		}
 
+		preservedInterface := m.repo.Interface(plug.Interface)
+		if preservedInterface == nil {
+			return fmt.Errorf("getting preserved connection %q interface not found", id)
+		}
+
+		if !preservedInterface.MaintainConnection(
+			plug, attrs.StaticPlugAttrs, slot, attrs.StaticSlotAttrs) {
+			// The interface rejected the changed definition, so leave the
+			// connection disconnected.
+			m.state.Warnf(
+				"disconnected %q from %q because its definition changed",
+				plugRef.ShortRef(), slotRef.ShortRef(),
+			)
+			continue
+		}
+
 		planConnect(attrs.Interface, connRef, slaves)
 	}
 
@@ -571,17 +500,6 @@ func MaybeBound(w *workshop.Workshop, ref sdk.PlugRef) (sdk.PlugRef, []sdk.PlugR
 	}
 
 	return ref, nil
-}
-
-// IsBoundSlave reports whether ref is a plug bound to another plug. A bound
-// plug follows its master's connection rather than owning one.
-func IsBoundSlave(w *workshop.Workshop, ref sdk.PlugRef) bool {
-	for _, s := range w.File.Sdks {
-		if s.Name == ref.Sdk {
-			return s.Plugs[ref.Name].Bind != nil
-		}
-	}
-	return false
 }
 
 func (m *InterfaceManager) doConnect(task *state.Task, tomb *tomb.Tomb) error {
