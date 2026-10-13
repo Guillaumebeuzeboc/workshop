@@ -222,6 +222,19 @@ func workshopConns(wp *workshop.Workshop) []interfaces.ConnRef {
 	return conns
 }
 
+// connectionStillDeclared reports whether a preserved connection still refers
+// to a declared plug and slot that use the interface the connection was made
+// against. A plug or slot that was removed, or that changed interface, cannot
+// be reconnected.
+func connectionStillDeclared(
+	attrs schema.PreservedConn,
+	plug *sdk.PlugInfo,
+	slot *sdk.SlotInfo,
+) bool {
+	return plug != nil && slot != nil &&
+		plug.Interface == attrs.Interface && slot.Interface == attrs.Interface
+}
+
 func (m *InterfaceManager) connectAuto(task *state.Task, wp *workshop.Workshop, info *sdk.Info, preserved map[string]schema.PreservedConn) error {
 	conns, err := getConns(m.state)
 	if err != nil {
@@ -330,7 +343,7 @@ func (m *InterfaceManager) connectAuto(task *state.Task, wp *workshop.Workshop, 
 
 		plug := m.repo.Plug(plugRef.ProjectId, plugRef.Workshop, plugRef.Sdk, plugRef.Name)
 		slot := m.repo.Slot(slotRef.ProjectId, slotRef.Workshop, slotRef.Sdk, slotRef.Name)
-		if plug == nil || slot == nil || plug.Interface != attrs.Interface || slot.Interface != attrs.Interface {
+		if !connectionStillDeclared(attrs, plug, slot) {
 			continue
 		}
 
