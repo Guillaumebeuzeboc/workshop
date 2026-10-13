@@ -67,6 +67,7 @@ jobs:
               tests/main/interface-camera
               tests/main/interface-custom-device
               tests/main/interface-custom-device-disconnect
+              tests/main/interface-custom-device-disconnect-restart
               tests/main/interface-desktop
               tests/main/interface-gpu
               tests/main/interface-mount
