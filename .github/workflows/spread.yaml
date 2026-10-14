@@ -110,6 +110,7 @@ jobs:
             label: main / secrets
             paths: >-
               tests/main/interface-secret
+              tests/main/interface-secret-disconnect
               tests/main/secret-service-helper
               tests/main/system-secret-retrieval
               tests/main/system-secret-retrieval-systemd
