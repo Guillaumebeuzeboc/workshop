@@ -94,12 +94,15 @@ jobs:
               tests/main/exec
               tests/main/interface-camera
               tests/main/interface-custom-device
+              tests/main/interface-custom-device-disconnect
+              tests/main/interface-custom-device-disconnect-restart
               tests/main/interface-desktop
               tests/main/interface-gpu
               tests/main/interface-mount
               tests/main/interface-plug-binding
               tests/main/interface-ssh-agent
               tests/main/interface-tunnel
+              tests/main/interface-tunnel-disconnect
               tests/main/shell
               tests/main/ssh
               tests/main/workshop-connections
