@@ -44,6 +44,10 @@ type cloudConfigVars struct {
 	// workshop.
 	WorkshopCtlPath string
 
+	// WorkshopSecretSocketPath is the path inside the workshop of the unix
+	// socket that systemd units connect to for secret resolution.
+	WorkshopSecretSocketPath string
+
 	// WorkshopStateDir is the directory inside the workshop used to store
 	// workshop state.
 	WorkshopStateDir string
@@ -70,7 +74,8 @@ func makeCloudConfigVars(file *workshop.File) cloudConfigVars {
 			dirs.WorkshopGuestBinDir,
 			filepath.Base(dirs.WorkshopCtlPath),
 		),
-		WorkshopStateDir: dirs.WorkshopStateDir,
+		WorkshopSecretSocketPath: dirs.WorkshopSecretSocketPath,
+		WorkshopStateDir:         dirs.WorkshopStateDir,
 	}
 }
 
@@ -192,6 +197,28 @@ write_files:
       GRUB_CMDLINE_LINUX="${GRUB_CMDLINE_LINUX:+$GRUB_CMDLINE_LINUX }"'systemd.machine_id=${workshop_machine_id}'
       GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT:+$GRUB_CMDLINE_LINUX_DEFAULT }quiet"
 {{- end}}
+  - path: /etc/systemd/system/workshop-secret.socket
+    content: |
+      [Unit]
+      Description=Workshop systemd load credential socket
+
+      [Socket]
+      ListenStream={{.WorkshopSecretSocketPath}}
+      SocketMode=0660
+      Accept=yes
+
+      [Install]
+      WantedBy=sockets.target
+  - path: /etc/systemd/system/workshop-secret@.service
+    content: |
+      [Unit]
+      Description=Workshop systemd load credential socket resolver
+
+      [Service]
+      ExecStart={{.WorkshopCtlPath}} get-secret --systemd
+      StandardError=journal
+      StandardInput=socket
+      StandardOutput=socket
 runcmd:
   # Project directory is required for 'workshop exec'.
   - install --directory --mode=755 /project /usr/local/bin /usr/local/lib/workshop {{shquote .WorkshopStateDir}}
@@ -206,6 +233,7 @@ runcmd:
   - ln -sf ../../bin/workshopctl {{shquote .FsFreezePath}}
 {{- end}}
   - systemctl enable --now workshop-waitready.service
+  - systemctl enable --now workshop-secret.socket
   # Linger starts the user manager for the specified user on boot, which then creates /run/user/$UID,
   # sets $XDG_RUNTIME_DIR and more. Interfaces such as desktop rely on both of these to be present.
   # This does not introduce any additional modification beyond what a login session would normally create.

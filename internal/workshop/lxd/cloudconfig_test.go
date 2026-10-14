@@ -54,11 +54,12 @@ func (s *cloudConfigSuite) TestCloudConfigTemplateRendersVars(c *check.C) {
 	c.Assert(err, check.IsNil)
 
 	vars := cloudConfigVars{
-		FsFreezePath:     "/wsp/bin/fsfreeze",
-		HasGRUB:          true,
-		StartTimeout:     123,
-		WorkshopCtlPath:  "/wsp/bin/workshopctl",
-		WorkshopStateDir: "/wsp/state",
+		FsFreezePath:             "/wsp/bin/fsfreeze",
+		HasGRUB:                  true,
+		StartTimeout:             123,
+		WorkshopCtlPath:          "/wsp/bin/workshopctl",
+		WorkshopSecretSocketPath: "/wsp/run/workshop.socket.secret",
+		WorkshopStateDir:         "/wsp/state",
 	}
 
 	var buf strings.Builder
@@ -78,6 +79,20 @@ func (s *cloudConfigSuite) TestCloudConfigTemplateRendersVars(c *check.C) {
 		`(?s).*- update-grub.*`)
 	c.Check(out, check.Matches,
 		`(?s).*- install --directory --mode=755 /project /usr/local/bin /usr/local/lib/workshop /wsp/state.*`)
+	c.Check(out, check.Matches,
+		`(?s).*ListenStream=/wsp/run/workshop\.socket\.secret.*`)
+	c.Check(out, check.Matches,
+		`(?s).*Accept=yes.*`)
+	c.Check(out, check.Matches,
+		`(?s).*path: /etc/systemd/system/workshop-secret@\.service.*`)
+	c.Check(out, check.Matches,
+		`(?s).*ExecStart=/wsp/bin/workshopctl get-secret --systemd.*`)
+	c.Check(out, check.Matches,
+		`(?s).*StandardInput=socket.*`)
+	c.Check(out, check.Matches,
+		`(?s).*StandardOutput=socket.*`)
+	c.Check(out, check.Matches,
+		`(?s).*systemctl enable --now workshop-secret\.socket.*`)
 }
 
 // TestMakeCloudConfigVarsContainer checks that container variables exclude the
@@ -91,6 +106,8 @@ func (s *cloudConfigSuite) TestMakeCloudConfigVarsContainer(c *check.C) {
 	c.Check(vars.HasGRUB, check.Equals, false)
 	c.Check(vars.StartTimeout, check.Equals,
 		startTimeoutContainer.Nanoseconds())
+	c.Check(vars.WorkshopSecretSocketPath, check.Equals,
+		dirs.WorkshopSecretSocketPath)
 	c.Check(vars.WorkshopStateDir, check.Equals, dirs.WorkshopStateDir)
 }
 
@@ -104,5 +121,7 @@ func (s *cloudConfigSuite) TestMakeCloudConfigVarsVM(c *check.C) {
 	c.Check(vars.FsFreezePath, check.Equals, dirs.FsFreezePath)
 	c.Check(vars.HasGRUB, check.Equals, true)
 	c.Check(vars.StartTimeout, check.Equals, startTimeoutVM.Nanoseconds())
+	c.Check(vars.WorkshopSecretSocketPath, check.Equals,
+		dirs.WorkshopSecretSocketPath)
 	c.Check(vars.WorkshopStateDir, check.Equals, dirs.WorkshopStateDir)
 }
