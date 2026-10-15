@@ -32,6 +32,18 @@ jobs:
         with:
           channel: latest/stable
 
+      - name: Allow Workshop networking through Docker firewall
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Interface-name rules can be added before Workshop creates its bridge.
+          if sudo nft list chain ip filter DOCKER-USER >/dev/null 2>&1; then
+            sudo nft insert rule ip filter DOCKER-USER \
+              iifname workshopbr0 accept
+            sudo nft insert rule ip filter DOCKER-USER \
+              oifname workshopbr0 ct state related,established accept
+          fi
+
       - name: Test tutorial
         uses: canonical/robotics-actions-workflows/tutorial-test@feat/tutorial-test-with-ai
         with:
